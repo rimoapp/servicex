@@ -1,6 +1,7 @@
 # servicex
 
 go でバックエンドサーバーを建てるときに必要な共通ライブラリ
+public repository なので、sensitive なデータはいれないように注意すること
 
 ## servicex の担っていること
 
