@@ -1,6 +1,7 @@
 package servicex
 
 import (
+	"os"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -51,6 +52,7 @@ func initSentry() error {
 	err = sentry.Init(sentry.ClientOptions{
 		Dsn:         dsn,
 		Environment: getAppEnv().String(),
+		Release:     os.Getenv("GIT_COMMIT_SHA"), // optional
 	})
 	if err != nil {
 		return err
