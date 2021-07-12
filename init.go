@@ -50,7 +50,7 @@ func initSentry() error {
 
 	err = sentry.Init(sentry.ClientOptions{
 		Dsn:         dsn,
-		Environment: string(AppEnv()),
+		Environment: getAppEnv().String(),
 	})
 	if err != nil {
 		return err
