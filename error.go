@@ -1,28 +1,23 @@
 package servicex
 
 import (
-	"net/http"
-	"os"
-	"time"
-
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-gonic/gin"
-	"github.com/pkg/errors"
 )
 
 // RenderError reports error to sentry and renders error json
-func RenderError(ctx *gin.Context, status int, err error) {
-	LogError(ctx, err.Error())
+func RenderError(c *gin.Context, status int, err error) {
+	LogError(c, err.Error())
 
-	hub := sentrygin.GetHubFromContext(ctx)
+	hub := sentrygin.GetHubFromContext(c)
 	if hub == nil {
 		hub = sentry.CurrentHub()
 	}
 
 	hub.CaptureException(err)
 
-	ctx.AbortWithStatusJSON(
+	c.AbortWithStatusJSON(
 		status,
 		map[string]string{"error": err.Error(), "message": err.Error()},
 	)
@@ -30,10 +25,13 @@ func RenderError(ctx *gin.Context, status int, err error) {
 
 // NoticeOnlyError sends error to sentry but do nothing else.
 func NoticeOnlyError(c *gin.Context, err error) {
-	hub := sentrygin.GetHubFromContext(ctx)
+	hub := sentrygin.GetHubFromContext(c)
 	if hub == nil {
 		hub = sentry.CurrentHub()
 	}
-
-	hub.CaptureException(err))
+	hub.WithScope(func(scope *sentry.Scope) {
+		scope.SetTag("notice-only", "true")
+		scope.SetLevel(sentry.LevelWarning)
+		hub.CaptureException(err)
+	})
 }

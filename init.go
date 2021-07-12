@@ -9,6 +9,7 @@ import (
 
 var closers []func()
 
+// Init initializes servicex
 func Init() {
 	orDie := func(err error) {
 		if err != nil {
@@ -24,6 +25,7 @@ func Init() {
 	}
 }
 
+// Close cleans up servicex
 func Close() {
 	for _, f := range closers {
 		f()

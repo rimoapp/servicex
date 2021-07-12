@@ -1,9 +1,8 @@
-package logx
+package servicex
 
 import (
 	"context"
 	"log"
-	"os"
 
 	"cloud.google.com/go/logging"
 )
@@ -14,10 +13,13 @@ func newLogger(ctx context.Context) *logging.Logger {
 	if logger != nil {
 		return logger
 	}
-
-	client, err := logging.NewClient(ctx, os.Getenv("GOOGLE_CLOUD_PROJECT"))
+	cloudProject, err := GetEnv("GOOGLE_CLOUD_PROJECT")
 	if err != nil {
-		log.Fatalf("Failed to create client: %v", err)
+		log.Fatalf("failed to get GOOGLE_CLOUD_PROJECT from env: %v", err)
+	}
+	client, err := logging.NewClient(ctx, cloudProject)
+	if err != nil {
+		log.Fatalf("failed to create client: %v", err)
 	}
 
 	logger = client.Logger("ServeHTTP")
