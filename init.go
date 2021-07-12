@@ -1,8 +1,6 @@
 package servicex
 
 import (
-	"flag"
-	"fmt"
 	"os"
 	"time"
 
@@ -10,7 +8,10 @@ import (
 	"github.com/joho/godotenv"
 )
 
-func init() {
+var closers []func()
+
+// Init initializes servicex.
+func Init() {
 	orDie := func(err error) {
 		if err != nil {
 			panic(err)
@@ -20,26 +21,22 @@ func init() {
 	loadEnv()
 
 	err := initSentry()
-	if appEnv != "development" && appEnv != "test" {
+	if !IsDevelopment() && !IsTest() {
 		orDie(err)
 	}
 }
 
-func loadEnv() {
-	if flag.Lookup("test.v") != nil {
-		appEnv = Env("test")
-	} else {
-		var v string
-		_ = setFromEnv("APP_ENV", &v)
-		if v == "" {
-			v = "development"
-		}
-		appEnv = Env(v)
+// Close cleans up servicex.
+func Close() {
+	for _, f := range closers {
+		f()
 	}
+}
 
-	env := string(appEnv)
+func loadEnv() {
+	env := getAppEnv().String()
 	godotenv.Load(".env." + env + ".local")
-	if "test" != env {
+	if env != "test" {
 		godotenv.Load(".env.local")
 	}
 	godotenv.Load(".env." + env)
@@ -47,60 +44,21 @@ func loadEnv() {
 }
 
 func initSentry() error {
-	var dsn string
-	err := setFromEnv("SENTRY_DSN", &dsn)
+	dsn, err := GetEnv("SENTRY_DSN")
 	if err != nil {
 		return err
 	}
 
 	err = sentry.Init(sentry.ClientOptions{
 		Dsn:         dsn,
-		Environment: string(AppEnv()),
+		Environment: getAppEnv().String(),
+		Release:     os.Getenv("GIT_COMMIT_SHA"), // optional
 	})
 	if err != nil {
 		return err
 	}
 
 	closers = append(closers, func() { sentry.Flush(30 * time.Second) })
-
-	return nil
-}
-
-var closers []func()
-
-func Close() {
-	for _, f := range closers {
-		f()
-	}
-}
-
-var (
-	appEnv Env
-)
-
-type Env string
-
-func AppEnv() Env { return appEnv }
-
-type EnvVarNotSet struct{ key string }
-
-func (e *EnvVarNotSet) Error() string { return fmt.Sprintf("%s is not set", e.key) }
-
-type EnvVarEmpty struct{ key string }
-
-func (e *EnvVarEmpty) Error() string { return fmt.Sprintf("%s is empty", e.key) }
-
-func setFromEnv(key string, dest *string) error {
-	v, ok := os.LookupEnv(key)
-	if !ok {
-		return &EnvVarNotSet{key: key}
-	}
-
-	if v == "" {
-		return &EnvVarEmpty{key: key}
-	}
-
-	*dest = v
 
 	return nil
 }
